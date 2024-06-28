@@ -1,0 +1,31 @@
+{{- if and .Values.server.ingress.enabled (eq .Values.server.ingress.controller "gke") }}
+{{- $insecure := index .Values.configs.params "server.insecure" | toString -}}
+{{- $servicePortName := eq $insecure "true" | ternary .Values.server.service.servicePortHttpName .Values.server.service.servicePortHttpsName -}}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/backend-protocol-version: {{ .Values.server.ingress.aws.backendProtocolVersion }}
+    {{- if .Values.server.ingress.gke.backendConfig }}
+    cloud.google.com/backend-config: '{"ports": {"{{ $servicePortName }}":"{{ template "argo-cd.server.fullname" . }}"}}'
+    {{- end }}
+  labels:
+    {{- include "argo-cd.labels" (dict "context" . "component" (print .Values.server.name "-gprc") "name" (print .Values.server.name "-grpc")) | nindent 4 }}
+  name: {{ template "argo-cd.server.fullname" . }}
+  namespace: {{ include  "argo-cd.namespace" . }}
+spec:
+  {{- include "argo-cd.dualStack" . | indent 2 }}
+  ports:
+  - name: {{ .Values.server.service.servicePortHttpName }}
+    protocol: TCP
+    port: {{ .Values.server.service.servicePortHttp }}
+    targetPort: {{ .Values.server.containerPorts.server }}
+  - name: {{ .Values.server.service.servicePortHttpsName }}
+    protocol: TCP
+    port: {{ .Values.server.service.servicePortHttps }}
+    targetPort: {{ .Values.server.containerPorts.server }}
+  selector:
+    {{- include "argo-cd.selectorLabels" (dict "context" . "name" .Values.server.name) | nindent 4 }}
+  sessionAffinity: None
+  type: {{ .Values.server.ingress.aws.serviceType }}
+{{- end -}}
