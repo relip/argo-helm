@@ -6,7 +6,7 @@ kind: Service
 metadata:
   annotations:
     {{- if .Values.server.ingress.gke.backendConfig }}
-    cloud.google.com/backend-config: '{"ports": {"{{ $servicePortName }}":"{{ template "argo-cd.server.fullname" . }}"}}'
+    cloud.google.com/backend-config: '{"ports": {"{{ $servicePortName }}":"{{ include "argo-cd.server.fullname" . }}"}}'
     {{- end }}
   labels:
     {{- include "argo-cd.labels" (dict "context" . "component" (print .Values.server.name "-gprc") "name" (print .Values.server.name "-grpc")) | nindent 4 }}
